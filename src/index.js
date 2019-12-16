@@ -1,35 +1,30 @@
-import React, {useEffect, useState} from 'react';
+import React, {Component, useEffect, useState} from 'react';
 import { render } from 'react-dom';
 import "./styles.css";
 
-// Размер поля
+// Размер поля (его можно менять)
 const size = 3;
 // Двумерный массив (квадрат), заданного размера, заполненный нулями
 const initialField = (new Array(size)).fill(
     (new Array(size)).fill(0)
 );
 
-/**
- * turn: 0 - нолик, 1 - крестик
- * cell: 0 - пусто, 1 - нолик, 2 - крестик
- * mode: 0 - игрок с игроком, 1 - игрок с ботом
- * @returns {*}
- * @constructor
- */
-const Field = () => {
-    const [field, setField] = useState(initialField.map(row => row.slice()));
-    const [turn, changeTurn] = useState(0);
-    const [mode, changeMode] = useState(0);
-    const [gameStatus, changeGameStatus] = useState("Ходят");
+class Field extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            field: initialField.map(row => row.slice()),
+            turn: 0,
+            mode: 0,
+            gameStatus: "Ходят"
+        };
+        this.handleClick = this.handleClick.bind(this);
+        this.switchMode = this.switchMode.bind(this);
+        this.moveOn = this.moveOn.bind(this);
+    }
 
-    // // при изменении значений поля накидываем проверки на выигрыш игрока или ничью
-    // useEffect(() => {
-    //
-    //
-    //
-    // }, [field]);
-
-    function handleClick(row, index) {
+    handleClick(row, index) {
+        const {field, turn, mode, gameStatus} = this.state;
         const cell = field[row][index];
         let nextTurn = turn;
         let newField = field.slice();
@@ -37,9 +32,9 @@ const Field = () => {
         // проверка на победу либо ничью
         const checkStatus = field => {
             if (checkWinner(field)) {
-                changeGameStatus("Победили");
-            } else if (checkDraw()) {
-                changeGameStatus("Ничья");
+                this.setState({gameStatus: "Победили"})
+            } else if (checkDraw(field)) {
+                this.setState({gameStatus: "Ничья"})
             }
         };
 
@@ -48,7 +43,7 @@ const Field = () => {
         }
 
         if (!cell) {
-            nextTurn  = +!turn;
+            nextTurn = +!turn;
             newField[row][index] = nextTurn ? 1 : 2;
 
             checkStatus(newField);
@@ -57,60 +52,160 @@ const Field = () => {
             if (mode) {
                 nextTurn = turn;
                 newField = makeMove(newField, nextTurn ? 1 : 2);
-                // console.log(newField);
 
                 checkStatus(newField);
             }
 
-            changeTurn(nextTurn);
-            setField(newField);
+            this.setState({
+                turn: nextTurn,
+                field: newField
+            });
         }
     }
 
-    function switchMode() {
-        changeMode(mode => +!mode);
-    }
-
-    // проверка на ничью
-    function checkDraw() {
-        return !field.flat().filter(cell => !cell).length;
+    switchMode() {
+        this.setState(prevState => ({
+            mode: +!prevState.mode
+        }));
     }
 
     // продолжаем играть
-    function moveOn() {
-        setField(initialField.map(row => row.slice()));
-        changeGameStatus("Ходят");
+    moveOn() {
+        this.setState({
+            field: initialField.map(row => row.slice()),
+            gameStatus: "Ходят"
+        });
     }
 
-    return (
-        <div id="main">
-            <div id="bot">
-                <input type="checkbox" id="switch" onChange={() => switchMode()}/>
-                <label htmlFor="switch">ChangeMode</label>
-                <h2>{mode ? "Выключить" : "Включить"} бота</h2>
+    render() {
+        const {switchMode, moveOn, handleClick} = this;
+        const {turn, gameStatus, field, mode} = this.state;
+        return (
+            <div id="main">
+                <div id="bot">
+                    <input type="checkbox" id="switch" onChange={() => switchMode()}/>
+                    <label htmlFor="switch">ChangeMode</label>
+                    <h2>{mode ? "Выключить" : "Включить"} бота</h2>
+                </div>
+                <div id="msg">
+                    <h1 id="turn"> {gameStatus}
+                        {gameStatus !== "Ничья" &&
+                        (gameStatus === "Ходят" ? (
+                            !turn ? " Крестики" : " Нолики"
+                        ) : (
+                            turn ? " Крестики" : " Нолики"
+                        ))}
+                    </h1>
+                    {gameStatus !== "Ходят" && <button onClick={() => moveOn()}>Круто!</button>}
+                </div>
+                <div id="field">
+                    {
+                        field.map((arr, index) => <Row key={index}
+                                                       row={arr}
+                                                       rowIndex={index}
+                                                       handleClick={handleClick}/>)
+                    }
+                </div>
             </div>
-            <div id="msg">
-                <h1 id="turn"> {gameStatus}
-                {gameStatus !== "Ничья" &&
-                (gameStatus === "Ходят" ? (
-                    !turn ? " Крестики" : " Нолики"
-                ) : (
-                    turn ? " Крестики" : " Нолики"
-                ))}
-                </h1>
-                {gameStatus !== "Ходят" && <button onClick={() => moveOn()}>Круто!</button>}
-            </div>
-            <div id="field">
-                {
-                    field.map((arr, index) => <Row key={index}
-                                                   row={arr}
-                                                   rowIndex={index}
-                                                   handleClick={handleClick}/>)
-                }
-            </div>
-        </div>
-    )
-};
+        );
+    }
+}
+// VERY IMPORTANT
+//
+// /**
+//  * turn: 0 - нолик, 1 - крестик
+//  * cell: 0 - пусто, 1 - нолик, 2 - крестик
+//  * mode: 0 - игрок с игроком, 1 - игрок с ботом
+//  * @returns {*}
+//  * @constructor
+//  */
+// const Fiel = () => {
+//     const [field, setField] = useState(initialField.map(row => row.slice()));
+//     const [turn, changeTurn] = useState(0);
+//     const [mode, changeMode] = useState(0);
+//     const [gameStatus, changeGameStatus] = useState("Ходят");
+
+    // function handleClick(row, index) {
+    //     const cell = field[row][index];
+    //     let nextTurn = turn;
+    //     let newField = field.slice();
+    //
+    //     // проверка на победу либо ничью
+    //     const checkStatus = field => {
+    //         if (checkWinner(field)) {
+    //             changeGameStatus("Победили");
+    //         } else if (checkDraw()) {
+    //             changeGameStatus("Ничья");
+    //         }
+    //     };
+    //
+    //     if (gameStatus !== "Ходят") {
+    //         return;
+    //     }
+    //
+    //     if (!cell) {
+    //         nextTurn  = +!turn;
+    //         newField[row][index] = nextTurn ? 1 : 2;
+    //
+    //         checkStatus(newField);
+    //
+    //         // Если бот включен - то делаем ход
+    //         if (mode) {
+    //             nextTurn = turn;
+    //             newField = makeMove(newField, nextTurn ? 1 : 2);
+    //
+    //             checkStatus(newField);
+    //         }
+    //
+    //         changeTurn(nextTurn);
+    //         setField(newField);
+    //     }
+    // }
+
+    // function switchMode() {
+    //     changeMode(mode => +!mode);
+    // }
+
+    // // проверка на ничью
+    // function checkDraw() {
+    //     return !field.flat().filter(cell => !cell).length;
+    // }
+
+    // // продолжаем играть
+    // function moveOn() {
+    //     setField(initialField.map(row => row.slice()));
+    //     changeGameStatus("Ходят");
+    // }
+//
+//     return (
+//         <div id="main">
+//             <div id="bot">
+//                 <input type="checkbox" id="switch" onChange={() => switchMode()}/>
+//                 <label htmlFor="switch">ChangeMode</label>
+//                 <h2>{mode ? "Выключить" : "Включить"} бота</h2>
+//             </div>
+//             <div id="msg">
+//                 <h1 id="turn"> {gameStatus}
+//                 {gameStatus !== "Ничья" &&
+//                 (gameStatus === "Ходят" ? (
+//                     !turn ? " Крестики" : " Нолики"
+//                 ) : (
+//                     turn ? " Крестики" : " Нолики"
+//                 ))}
+//                 </h1>
+//                 {gameStatus !== "Ходят" && <button onClick={() => moveOn()}>Круто!</button>}
+//             </div>
+//             <div id="field">
+//                 {
+//                     field.map((arr, index) => <Row key={index}
+//                                                    row={arr}
+//                                                    rowIndex={index}
+//                                                    handleClick={handleClick}/>)
+//                 }
+//             </div>
+//         </div>
+//     )
+// };
 
 const Row = ({ row, rowIndex, handleClick }) => {
     return (
@@ -139,8 +234,13 @@ render(
     document.getElementById('root')
 );
 
+// проверка на ничью
+const checkDraw = field =>
+    !field.flat().filter(cell => !cell).length;
+
 // проверка на то, что в массиве все значения равны и не равны 0
-const checkAllEqual = array => array.every(val => val && val === array[0]);
+const checkAllEqual = array =>
+    array.every(val => val && val === array[0]);
 
 // проверка столбца поля на выигрыш игрока
 const checkVertical = array => {
