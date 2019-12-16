@@ -163,7 +163,7 @@ const checkWinner = field => {
             || checkAllEqual(field.map(row => row[right--]))    // диагонали /
 };
 
-// примтивный бот для игры 3х3
+// примтивный бот для игры 3х3 (пока адекватно себя ведет только на поле этих размеров)
 const makeMove = (field, figure, turn) => {
     const center = Math.floor(size / 2.0);
 
